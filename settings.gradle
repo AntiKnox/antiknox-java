@@ -1,2 +1,6 @@
-rootProject.name = 'antiknox-java'
+rootProject.name = 'antiknox'
+include 'core'
+include 'all'
+include 'gson'
+include 'caffeine'
 

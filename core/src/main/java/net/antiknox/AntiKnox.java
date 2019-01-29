@@ -1,34 +1,32 @@
 package net.antiknox;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.gson.Gson;
+import net.antiknox.impl.InMemoryWhitelist;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class AntiKnox {
 
-	private static Gson gson = new Gson();
-
 	private String key;
-	private Set<String> whitelist = new HashSet<>();
-	private Cache<String, Record> cache = Caffeine.newBuilder().maximumSize(1024).expireAfterAccess(2, TimeUnit.HOURS).build();
+	private JsonDeserializer jsonDeserializer;
+	private Whitelist whitelist = new InMemoryWhitelist();
+	private RecordCache cache;
 
-	public AntiKnox(String key) {
+	public AntiKnox(String key, JsonDeserializer jsonDeserializer, RecordCache cache) {
 		if (key == null || key.length() != 64) {
 			throw new IllegalArgumentException("key has to be 64 characters and cannot be null");
 		}
 
 		this.key = key;
+		this.jsonDeserializer = jsonDeserializer;
+		this.cache = cache;
 	}
 
-	public Set<String> getWhitelist() {
+	public Whitelist getWhitelist() {
 		return whitelist;
 	}
 
@@ -39,9 +37,9 @@ public class AntiKnox {
 		}
 
 		// Check for a cache hit
-		Record cached = cache.getIfPresent(ip);
-		if (cached != null) {
-			return cached;
+		Optional<Record> cached = cache.get(ip);
+		if (cached.isPresent()) {
+			return cached.get();
 		}
 
 		OkHttpClient client = new OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS).build();
@@ -49,14 +47,16 @@ public class AntiKnox {
 		try {
 			Call call = client.newCall(new Request.Builder().url("https://api.antiknox.net/lookup/" + ip + "?auth=" + key).get().build());
 
-			String data = call.execute().body().string();
-			Record record = gson.fromJson(data, Record.class);
+			Optional<Record> record = jsonDeserializer.fromJson(call.execute().body().byteStream(), Record.class);
+			if (!record.isPresent()) {
+				return Record.EMPTY;
+			}
 
 			// Put the record in the cache to remove redundant calls.
-			cache.put(ip, record);
+			cache.put(ip, record.get());
 
-			return record;
-		} catch (IOException e) {
+			return record.get();
+		} catch (Exception e) {
 			return Record.EMPTY;
 		}
 	}
