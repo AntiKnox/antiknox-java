@@ -34,7 +34,7 @@ public class Record {
 		return credits;
 	}
 
-	static class Direct {
+	public static class Direct {
 
 		private Type type;
 		private String provider;
@@ -49,10 +49,18 @@ public class Record {
 
 	}
 
-	static class Heuristics {
+	public static class Heuristics {
 
 		private String company = "";
 		private String label = "";
+
+		public String getCompany() {
+			return company;
+		}
+
+		public String getLabel() {
+			return label;
+		}
 
 	}
 
