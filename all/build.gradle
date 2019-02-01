@@ -2,6 +2,8 @@ plugins {
     id 'java'
 }
 
+apply plugin: 'com.novoda.bintray-release'
+
 group 'net.antiknox'
 version '0.1.0'
 
@@ -18,3 +20,13 @@ dependencies {
     compile project(':gson')
     compile project(':caffeine')
 }
+
+publish {
+    userOrg = 'godcoder'
+    groupId = 'net.antiknox'
+    artifactId = 'antiknox-all'
+    desc = 'AntiKnox Java library'
+    website = 'https://www.antiknox.net'
+    publishVersion = rootProject.version
+}
+

@@ -1,29 +1,21 @@
 package net.antiknox;
 
+import net.antiknox.impl.JavaNetHttpClient;
 import net.antiknox.impl.InMemoryWhitelist;
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 public class AntiKnox {
 
 	private String key;
 	private JsonDeserializer jsonDeserializer;
-	private Whitelist whitelist = new InMemoryWhitelist();
+	private Whitelist whitelist;
 	private RecordCache cache;
+	private Client httpClient;
 
-	public AntiKnox(String key, JsonDeserializer jsonDeserializer, RecordCache cache) {
-		if (key == null || key.length() != 64) {
-			throw new IllegalArgumentException("key has to be 64 characters and cannot be null");
-		}
+	private AntiKnox() {
 
-		this.key = key;
-		this.jsonDeserializer = jsonDeserializer;
-		this.cache = cache;
 	}
 
 	public Whitelist getWhitelist() {
@@ -36,29 +28,84 @@ public class AntiKnox {
 			return Record.EMPTY;
 		}
 
-		// Check for a cache hit
-		Optional<Record> cached = cache.get(ip);
-		if (cached.isPresent()) {
-			return cached.get();
+		// Check for a cache hit (if we're using a cache at all)
+		if (cache != null) {
+			Optional<Record> cached = cache.get(ip);
+
+			if (cached.isPresent()) {
+				return cached.get();
+			}
 		}
 
-		OkHttpClient client = new OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS).build();
-
-		try {
-			Call call = client.newCall(new Request.Builder().url("https://api.antiknox.net/lookup/" + ip + "?auth=" + key).get().build());
-
-			Optional<Record> record = jsonDeserializer.fromJson(call.execute().body().byteStream(), Record.class);
+		try (InputStream httpStream = httpClient.get("https://api.antiknox.net/lookup/" + ip + "?auth=" + key)) {
+			Optional<Record> record = jsonDeserializer.fromJson(httpStream, Record.class);
 			if (!record.isPresent()) {
 				return Record.EMPTY;
 			}
 
-			// Put the record in the cache to remove redundant calls.
-			cache.put(ip, record.get());
+			// If caching is enabled we put the record in the cache to remove redundant calls.
+			if (cache != null) {
+				cache.put(ip, record.get());
+			}
 
 			return record.get();
 		} catch (Exception e) {
 			return Record.EMPTY;
 		}
+	}
+
+	public static class Builder {
+
+		private AntiKnox obj = new AntiKnox();
+
+		public Builder key(String key) {
+			obj.key = key;
+			return this;
+		}
+
+		public Builder httpClient(Client httpClient) {
+			if (httpClient == null) {
+				throw new IllegalArgumentException("httpClient cannot be null - use a DefaultHttpClient instead");
+			}
+
+			obj.httpClient = httpClient;
+			return this;
+		}
+
+		public Builder jsonDeserializer(JsonDeserializer deserializer) {
+			obj.jsonDeserializer = deserializer;
+			return this;
+		}
+
+		public Builder cache(RecordCache cache) {
+			obj.cache = cache;
+			return this;
+		}
+
+		public AntiKnox build() {
+			// Verify key existence and length
+			if (obj.key == null || obj.key.length() != 64) {
+				throw new IllegalArgumentException("key has to be 64 characters and cannot be null");
+			}
+
+			// Require a valid JSON deserializer (no default implementation as Java has no JSON built-in)
+			if (obj.jsonDeserializer == null) {
+				throw new IllegalArgumentException("deserializer cannot be null");
+			}
+
+			// Set the HTTP client to the default one if it's not set
+			if (obj.httpClient == null) {
+				obj.httpClient = new JavaNetHttpClient();
+			}
+
+			// Use an in-memory whitelist by default
+			if (obj.whitelist == null) {
+				obj.whitelist = new InMemoryWhitelist();
+			}
+
+			return obj;
+		}
+
 	}
 
 }

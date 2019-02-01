@@ -1,3 +1,12 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.novoda:bintray-release:0.9'
+    }
+}
 
 group 'net.antiknox'
 version '0.1.0'
