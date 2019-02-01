@@ -64,7 +64,7 @@ public class Record {
 
 	}
 
-	enum Type {
+	public enum Type {
 		VPN,
 		PROXY,
 		TOR
