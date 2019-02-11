@@ -21,7 +21,7 @@ dependencies {
 }
 
 publish {
-    userOrg = 'godcoder'
+    userOrg = 'antiknox'
     groupId = 'net.antiknox'
     artifactId = 'antiknox-gson'
     desc = 'AntiKnox Java library - Gson integration'

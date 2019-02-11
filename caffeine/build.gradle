@@ -21,7 +21,7 @@ dependencies {
 }
 
 publish {
-    userOrg = 'godcoder'
+    userOrg = 'antiknox'
     groupId = 'net.antiknox'
     artifactId = 'antiknox-caffeine'
     desc = 'AntiKnox Java library - Caffeine integration'

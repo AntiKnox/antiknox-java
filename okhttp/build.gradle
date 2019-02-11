@@ -21,7 +21,7 @@ dependencies {
 }
 
 publish {
-    userOrg = 'godcoder'
+    userOrg = 'antiknox'
     groupId = 'net.antiknox'
     artifactId = 'antiknox-okhttp3'
     desc = 'AntiKnox Java library - okhttp3 integration'

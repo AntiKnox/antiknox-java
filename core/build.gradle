@@ -17,7 +17,7 @@ dependencies {
 }
 
 publish {
-    userOrg = 'godcoder'
+    userOrg = 'antiknox'
     groupId = 'net.antiknox'
     artifactId = 'antiknox-core'
     desc = 'AntiKnox Java library'
